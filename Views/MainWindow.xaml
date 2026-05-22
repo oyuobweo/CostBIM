@@ -1,0 +1,964 @@
+<Window x:Class="CostBIM.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CostBIM - 3D 뷰 객체 파라미터 추출 작업대" 
+        Height="720" Width="1180"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        Background="#F1F5F9"
+        Foreground="#1E293B"
+        FontFamily="Segoe UI, Malgun Gothic"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Focusable="True"
+        PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="36" ResizeBorderThickness="6" GlassFrameThickness="1" CornerRadius="0"/>
+    </WindowChrome.WindowChrome>
+    
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <!-- Dynamic Brushes for TabItem and ListBoxItem to support beautiful modern light styles -->
+        <SolidColorBrush x:Key="TabHoverBackground" Color="#084F46E5"/>
+        <SolidColorBrush x:Key="TabHoverForeground" Color="#4F46E5"/>
+        <SolidColorBrush x:Key="ListBoxItemHoverBackground" Color="#086366F1"/>
+        <SolidColorBrush x:Key="ListBoxItemHoverBorder" Color="#156366F1"/>
+        <SolidColorBrush x:Key="ListBoxItemSelectedBackground" Color="#106366F1"/>
+        <SolidColorBrush x:Key="ListBoxItemSelectedBorder" Color="#306366F1"/>
+
+        <!-- Title Bar Button Style -->
+        <Style x:Key="TitleBarButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#0F000000"/>
+                    <Setter Property="Foreground" Value="#0F172A"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1F000000"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Title Bar Close Button Style -->
+        <Style x:Key="TitleBarCloseButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E81123"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#F1707A"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Modern ScrollBar Styling -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Width" Value="7"/>
+        </Style>
+        
+        <!-- Premium Indigo Gradient Button Template with Neon Glow (Light Mode Optimization) -->
+        <Style x:Key="PremiumButtonStyle" TargetType="Button">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#6366F1" Offset="0"/>
+                        <GradientStop Color="#4F46E5" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#4F46E5" BlurRadius="6" ShadowDepth="1" Opacity="0.25"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#818CF8" Offset="0"/>
+                                            <GradientStop Color="#6366F1" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#6366F1" BlurRadius="10" ShadowDepth="1.5" Opacity="0.45"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#4338CA" Offset="0"/>
+                                            <GradientStop Color="#3730A3" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#CBD5E1"/>
+                                <Setter Property="Foreground" Value="#94A3B8"/>
+                                <Setter TargetName="border" Property="Effect" Value="{x:Null}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Premium Excel Export Button Style (Sage Green / Emerald Modern Gradient) -->
+        <Style x:Key="PremiumExcelButtonStyle" TargetType="Button">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#10B981" Offset="0"/>
+                        <GradientStop Color="#059669" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#059669" BlurRadius="6" ShadowDepth="1" Opacity="0.25"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#34D399" Offset="0"/>
+                                            <GradientStop Color="#10B981" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#10B981" BlurRadius="10" ShadowDepth="1.5" Opacity="0.45"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#065F46" Offset="0"/>
+                                            <GradientStop Color="#064E3B" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#CBD5E1"/>
+                                <Setter Property="Foreground" Value="#94A3B8"/>
+                                <Setter TargetName="border" Property="Effect" Value="{x:Null}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Premium TextBox Style with Focus Glow -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1.2"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="false" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#94A3B8"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="White"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#6366F1"/>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#6366F1" BlurRadius="6" ShadowDepth="0" Opacity="0.2"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Premium ListBoxItem Style with Micro-Interactions -->
+        <Style TargetType="ListBoxItem">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="0,0.5"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                Padding="{TemplateBinding Padding}" 
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ListBoxItemHoverBackground}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ListBoxItemHoverBorder}"/>
+                            </Trigger>
+                            <!-- [Star] [선택 효과 복원] 영문 단축키 이동 시 시각적 하이라이트가 은은하게 표출되도록 인디고 스킨 재부여 -->
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ListBoxItemSelectedBackground}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ListBoxItemSelectedBorder}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Premium Column Header Style Reference for Dynamic Binding -->
+        <Style x:Key="PremiumColumnHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="SeparatorVisibility" Value="Visible"/>
+            <Setter Property="SeparatorBrush" Value="#E2E8F0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <EventSetter Event="Control.PreviewMouseLeftButtonDown" Handler="ColumnHeader_PreviewMouseLeftButtonDown"/>
+            <EventSetter Event="Control.PreviewMouseDoubleClick" Handler="ColumnHeader_PreviewMouseDoubleClick"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridColumnHeader">
+                        <Grid x:Name="HeaderGrid" Background="Transparent" MinWidth="85">
+                            <Border x:Name="Border" 
+                                    Background="{TemplateBinding Background}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                    BorderThickness="{TemplateBinding BorderThickness}" 
+                                    Padding="{TemplateBinding Padding}">
+                                <!-- [Star] [1:1 대칭 정중앙 정렬 완벽 원복 Overlap Layout] ColumnDefinitions를 분할하지 않아 텍스트가 기하학적 수평 정중앙에 편안하게 정렬됨 -->
+                                <Grid>
+                                    <!-- Header Text (깔때기 아이콘과의 겹침을 방지하기 위해 우측 18px의 안전 여백 강제 확보) -->
+                                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                                      VerticalAlignment="Center" 
+                                                      Margin="4,0,18,0"
+                                                      RecognizesAccessKey="True" 
+                                                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                    
+                                    <!-- Filter Button (깔때기 모양) - 우측 플로팅 마그네틱 배치 및 초기 숨김 -->
+                                    <Button x:Name="BtnFilter" 
+                                            HorizontalAlignment="Right"
+                                            Width="16" Height="16" Margin="0,0,2,0"
+                                            Background="Transparent" BorderThickness="0"
+                                            WindowChrome.IsHitTestVisibleInChrome="True"
+                                            Click="BtnFilter_Click" Cursor="Hand"
+                                            VerticalAlignment="Center"
+                                            Visibility="Collapsed">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Grid Background="Transparent">
+                                                    <!-- 깔때기 SVG 패스 데이터 -->
+                                                    <Path x:Name="FilterIcon" 
+                                                          Data="M2,1 L14,1 L9,7 L9,14 L7,14 L7,7 Z" 
+                                                          Fill="#94A3B8" 
+                                                          Stretch="Uniform" 
+                                                          Width="10" Height="10"/>
+                                                </Grid>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="FilterIcon" Property="Fill" Value="#4F46E5"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </Grid>
+                            </Border>
+
+                            <!-- Column Resizing Gripper (WPF 기본 Thumb 필수) -->
+                            <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left" Width="3" Cursor="SizeWE">
+                                <Thumb.Template>
+                                    <ControlTemplate TargetType="Thumb">
+                                        <Border Background="Transparent" />
+                                    </ControlTemplate>
+                                </Thumb.Template>
+                            </Thumb>
+                            <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right" Width="3" Cursor="SizeWE">
+                                <Thumb.Template>
+                                    <ControlTemplate TargetType="Thumb">
+                                        <Border Background="Transparent" />
+                                    </ControlTemplate>
+                                </Thumb.Template>
+                            </Thumb>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#E2E8F0"/>
+                                <Setter Property="Foreground" Value="#0F172A"/>
+                            </Trigger>
+                            <!-- [Star] [WPF 네이티브 HasItems 데이터 트리거] DataGrid에 아이템이 바인딩되면 깔때기 필터 보임, 텅 빈 초기화 시점에는 완벽 은닉 -->
+                            <DataTrigger Binding="{Binding Path=HasItems, RelativeSource={RelativeSource AncestorType=DataGrid}}" Value="True">
+                                <Setter TargetName="BtnFilter" Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Premium TextBlock Style for DataGrid Columns -->
+        <Style x:Key="PremiumTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="6,4"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        
+        <!-- Premium TabControl & TabItem Styling -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <UniformGrid Grid.Row="0" Columns="3" Rows="1" IsItemsHost="True"/>
+                            <Border Grid.Row="1" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Margin="0,4,0,0">
+                                <ContentPresenter ContentSource="SelectedContent"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style TargetType="TabItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="2,8"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" Margin="0,0,1,0">
+                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#6366F1"/>
+                                <Setter Property="Foreground" Value="#4F46E5"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource TabHoverBackground}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TabHoverForeground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Custom CheckBox Design for Perfect Contrast in Light Theme -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#334155"/> <!-- 진한 슬레이트 그레이로 글씨가 뚜렷하게 보임! -->
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,3"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#0F172A"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Premium DataGridCell Style (Elegant Light Selection Highlight) -->
+        <Style TargetType="DataGridCell">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <!-- [Star] [마이너스 마진 오버랩 레이아웃] Margin="-1"을 적용하여 DataGrid 기본 그리드선(GridLine) 공간을 덮어쓰게 하여, 다중 선택 시 셀 사이의 하얀 틈을 완벽하게 밀봉함 -->
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                Margin="-1"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter ContentTemplate="{TemplateBinding ContentTemplate}"
+                                               Content="{TemplateBinding Content}"
+                                               ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                               Margin="{TemplateBinding Padding}"
+                                               VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="#0F172A"/>
+                    <!-- 입체감 붕 뜸 없이 선 색상만 얇은 보라색 단색으로 깔끔하게 처리 -->
+                    <Setter Property="BorderBrush" Value="#6366F1"/>
+                    <!-- [Star] [가림 방지 Z-Index] 선택된 셀을 상위 레이어로 끌어올려 주변 하얀 뼈대나 다른 셀에 파란 테두리가 먹히거나 가려지는 현상 완전 제거 -->
+                    <Setter Property="Panel.ZIndex" Value="1"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Premium DataGridRow Style (Highlight Z-Index so borders show on top) -->
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Panel.ZIndex" Value="99"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Premium DataGridColumnHeadersPresenter Style to Fix Empty Header Background Bug -->
+        <Style TargetType="DataGridColumnHeadersPresenter">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridColumnHeadersPresenter">
+                        <Grid>
+                            <!-- 실제 컬럼 헤더(#F1F5F9) 및 테두리선(#E2E8F0)과 100% 매칭되는 단일화된 프리미엄 회색 배경을 전체 영역(우측 여백 포함)에 매끄럽게 포설 -->
+                            <Border Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1"/>
+                            <ItemsPresenter />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Premium Style for DataGrid SelectAll Button (Top-Left Corner Header) to show 'NO.' -->
+        <Style x:Key="{ComponentResourceKey ResourceId=DataGridSelectAllButtonStyle, TypeInTargetAssembly={x:Type DataGrid}}" TargetType="Button">
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <!-- 🌟 [Top-Left Corner에 NO. 표시] 정중앙에 'NO.' 표시 기입 -->
+                                <TextBlock Text="NO." 
+                                           HorizontalAlignment="Center" 
+                                           VerticalAlignment="Center" 
+                                           Foreground="#64748B" 
+                                           FontWeight="SemiBold" 
+                                           FontSize="11"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Common Parameter Item Template -->
+        <DataTemplate x:Key="ParameterItemTemplate">
+            <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" Click="CheckBox_Click" Foreground="#2D3748" Margin="2">
+                <TextBlock Text="{Binding Name}" FontSize="11.5" Margin="5,0,0,0" Foreground="#2D3748" FontWeight="Medium"/>
+            </CheckBox>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="RootBorder"
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0.0" To="1.0"
+                                     Duration="0:0:0.4"
+                                     DecelerationRatio="0.85"/>
+                    <DoubleAnimation Storyboard.TargetName="RootTranslate"
+                                     Storyboard.TargetProperty="Y"
+                                     From="20.0" To="0.0"
+                                     Duration="0:0:0.4"
+                                     DecelerationRatio="0.85"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>
+
+    <!-- Master Border with premium glassmorphism light aesthetic -->
+    <Border x:Name="RootBorder" BorderBrush="#CBD5E1" BorderThickness="1" ClipToBounds="True" Focusable="True" Opacity="0">
+        <Border.Background>
+            <SolidColorBrush Color="#F8FAFC"/>
+        </Border.Background>
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="RootTranslate" Y="20"/>
+        </Border.RenderTransform>
+        
+        <Grid>
+            <Grid.RowDefinitions>
+                <!-- Custom Premium Title Bar -->
+                <RowDefinition Height="36"/>
+                <!-- Data Grid & Sidebar Main Area -->
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 0) CUSTOM TITLE BAR (Draggable Chrome Area) -->
+            <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                <Grid Margin="12,0,0,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Height="36">
+                        <!-- [Star] [프리미엄 모던 레이어 로고] BIM 데이터 층위를 형상화한 고급스러운 스택(Stack) 라인 아트 벡터 -->
+                        <Path Data="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
+                              Stroke="#6366F1" StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" 
+                              Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="CostBIM" Foreground="#1E293B" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,1,0,0"/>
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button WindowChrome.IsHitTestVisibleInChrome="True" Style="{StaticResource TitleBarButtonStyle}" Content="─" Click="BtnMinimize_Click"/>
+                        <!-- 최대화 버튼 폰트 스케일을 타 버튼과 1:1 대칭(11.5)으로 상향하여 완벽한 크기 균형감 제공 -->
+                        <Button WindowChrome.IsHitTestVisibleInChrome="True" Style="{StaticResource TitleBarButtonStyle}" Content="⬜" FontSize="11.5" Click="BtnMaximize_Click"/>
+                        <Button WindowChrome.IsHitTestVisibleInChrome="True" Style="{StaticResource TitleBarCloseButtonStyle}" Content="✕" Click="BtnClose_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 1) MAIN WORK AREA: SIDEBAR + DATA GRID -->
+            <Grid Grid.Row="1" Margin="12">
+                <Grid.ColumnDefinitions>
+                    <!-- Column 0: Parameter Settings Sidebar (320px Sidebar Width + 12px Margin) -->
+                    <ColumnDefinition Width="332"/>
+                    <!-- Column 1: Main Data Grid & Controls -->
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- A) SIDEBAR PANEL: PARAMETER MANAGER & TAB SELECTOR (상시 노출 Visible) -->
+                <Border x:Name="SidebarPanel" Grid.Column="0" Visibility="Visible" Margin="0,0,12,0" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="14">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#0F172A" BlurRadius="8" ShadowDepth="1" Opacity="0.03"/>
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> <!-- Panel Title Header -->
+                            <RowDefinition Height="Auto"/> <!-- Premium Option Toolbar -->
+                            <RowDefinition Height="*"/>    <!-- TabControl with checkable lists -->
+                        </Grid.RowDefinitions>
+
+                        <!-- Panel Title Header -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Width="4" Height="14" Background="#6366F1" CornerRadius="2" Margin="0,0,8,0"/>
+                                <TextBlock Text="Parameter" Foreground="#1E293B" FontSize="13.5" FontWeight="Bold" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Premium Option Toolbar -->
+                        <Border Grid.Row="1" Background="#F8FAFC" CornerRadius="6" Padding="10,6" Margin="0,0,0,10" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <CheckBox x:Name="ChkSortSelectedToTop" Content="선택 항목 상단 정렬" 
+                                      WindowChrome.IsHitTestVisibleInChrome="True"
+                                      Foreground="#4F46E5" FontSize="11.5" FontWeight="SemiBold"
+                                      HorizontalAlignment="Left" VerticalAlignment="Center"
+                                      Click="ChkSortSelectedToTop_Click"/>
+                        </Border>
+
+                        <!-- TabControl for Multi-Select Checkboxes -->
+                        <!-- [Star] [탭 전환 이벤트 바인딩] 탭을 전환하자마자 해당 리스트박스로 키보드 포커스가 자동으로 이동하도록 설정 -->
+                        <TabControl Grid.Row="2" Margin="0,0,0,4" WindowChrome.IsHitTestVisibleInChrome="True" SelectionChanged="TabControl_SelectionChanged">
+                            <TabControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="3" Rows="1"/>
+                                </ItemsPanelTemplate>
+                            </TabControl.ItemsPanel>
+
+                            <!-- Tab 1: Built-in (Emerald Accent) -->
+                            <TabItem>
+                                <TabItem.Header>
+                                    <TextBlock Text="🏢 Built-in" TextWrapping="Wrap" TextAlignment="Center" FontSize="10.5" Margin="2,0"/>
+                                </TabItem.Header>
+                                <!-- [Star] [TextSearch 비활성화] WPF 기본 텍스트 서치를 끄고, 우리의 명품 커스텀 이니셜 이동 엔진만 가볍게 우선 동작하도록 유도 -->
+                                <ListBox x:Name="LstBuiltInParams" Background="Transparent" BorderThickness="0" Padding="2,5" 
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         TextSearch.TextPath="Name" IsTextSearchEnabled="False" PreviewKeyDown="LstParams_PreviewKeyDown"
+                                         ItemTemplate="{StaticResource ParameterItemTemplate}"/>
+                            </TabItem>
+
+                            <!-- Tab 2: Project Parameters (Amber Accent) -->
+                            <TabItem>
+                                <TabItem.Header>
+                                    <TextBlock Text="🛠️ Project" TextWrapping="Wrap" TextAlignment="Center" FontSize="10.5" Margin="2,0"/>
+                                </TabItem.Header>
+                                <!-- [Star] [TextSearch 비활성화] WPF 기본 텍스트 서치를 끄고, 우리의 명품 커스텀 이니셜 이동 엔진만 가볍게 우선 동작하도록 유도 -->
+                                <ListBox x:Name="LstProjectParams" Background="Transparent" BorderThickness="0" Padding="2,5" 
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         TextSearch.TextPath="Name" IsTextSearchEnabled="False" PreviewKeyDown="LstParams_PreviewKeyDown"
+                                         ItemTemplate="{StaticResource ParameterItemTemplate}"/>
+                            </TabItem>
+
+                            <!-- Tab 3: Shared Parameters (Violet Accent) -->
+                            <TabItem>
+                                <TabItem.Header>
+                                    <TextBlock Text="🔗 Shared" TextWrapping="Wrap" TextAlignment="Center" FontSize="10.5" Margin="2,0"/>
+                                </TabItem.Header>
+                                <!-- [Star] [TextSearch 비활성화] WPF 기본 텍스트 서치를 끄고, 우리의 명품 커스텀 이니셜 이동 엔진만 가볍게 우선 동작하도록 유도 -->
+                                <ListBox x:Name="LstSharedParams" Background="Transparent" BorderThickness="0" Padding="2,5" 
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         TextSearch.TextPath="Name" IsTextSearchEnabled="False" PreviewKeyDown="LstParams_PreviewKeyDown"
+                                         ItemTemplate="{StaticResource ParameterItemTemplate}"/>
+                            </TabItem>
+                        </TabControl>
+                    </Grid>
+                </Border>
+
+                <!-- B) MAIN DATA GRID & CONTROLS IN COLUMN 1 (사이드바 상시 구분을 위해 마진 12 복원) -->
+                <Border Grid.Column="1" Margin="12,0,0,0" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="14">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#0F172A" BlurRadius="8" ShadowDepth="1" Opacity="0.03"/>
+                    </Border.Effect>
+                    <Grid>
+                    <Grid.RowDefinitions>
+                        <!-- Row 0: Panel Title Row -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Row 1: High Performance DataGrid -->
+                        <RowDefinition Height="*"/>
+                        <!-- Row 2: Bottom Button Bar (실행 버튼 우하단 대칭 EQ를 위해 Height Auto 설정) -->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: Panel Title Row -->
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="4" Height="14" Background="#6366F1" CornerRadius="2" Margin="0,0,8,0"/>
+                            <TextBlock Text="객체 정보" Foreground="#1E293B" FontSize="13.5" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- High Performance DataGrid (Pure Professional Light Grid) -->
+                    <DataGrid Grid.Row="1" x:Name="GridElements" CanUserAddRows="False" Margin="1"
+                              AutoGenerateColumns="False" 
+                              CanUserReorderColumns="True"
+                              CanUserSortColumns="False"
+                              SelectionUnit="CellOrRowHeader"
+                              SelectionMode="Extended"
+                              LoadingRow="GridElements_LoadingRow"
+                              EnableRowVirtualization="True"
+                              EnableColumnVirtualization="True"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel"
+                              ColumnHeaderHeight="32"
+                              RowHeaderWidth="42"
+                              Background="#F8FAFC" 
+                              RowBackground="#FFFFFF"
+                              AlternatingRowBackground="#FFFFFF">
+                        <!-- Premium DataGrid RowHeader Styling (가로/세로 정가운데 배치 레이아웃 밀착 보강) -->
+                        <DataGrid.RowHeaderStyle>
+                            <Style TargetType="DataGridRowHeader">
+                                <Setter Property="Background" Value="#F1F5F9"/>
+                                <Setter Property="Foreground" Value="#64748B"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="FontSize" Value="11"/>
+                                <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                                <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Width" Value="42"/>
+                                <!-- 🌟 [정가운데 정렬 완벽 보정] ContentPresenter의 정렬 상태 강제 주입 -->
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridRowHeader">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    Padding="{TemplateBinding Padding}"
+                                                    Width="{TemplateBinding Width}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </DataGrid.RowHeaderStyle>
+                    </DataGrid>
+
+                    <!-- 🌟 [대안 B] 미니멀 웰컴 Empty State UX Panel -->
+                    <Border x:Name="EmptyStatePanel" Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Margin="1" Visibility="Visible">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <!-- 3D 큐브/상자 스타일의 고급스러운 Path 일러스트 -->
+                            <Path Data="M20 4L4 12l16 8 16-8-16-8zm-16 8v12l16 8V20L4 12zm32 0v12l-16 8V20l16-8z" 
+                                  Fill="#6366F1" Opacity="0.15" Stretch="Uniform" Width="64" Height="64" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                            
+                            <TextBlock Text="📦 수집된 물리 객체 데이터가 없습니다." 
+                                       FontWeight="Bold" FontSize="15" Foreground="#1E293B" 
+                                       HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            
+                            <TextBlock Text="현재 활성화된 3D 뷰에서 파라미터 데이터를 수집하여 분석할 수 있습니다.&#x0a;아래 버튼을 눌러 스캔을 시작해 보세요." 
+                                       FontSize="12" Foreground="#64748B" 
+                                       HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,20" LineHeight="18"/>
+                            
+                            <!-- ⚡ 스캔 실행 유도 번개 버튼 (프리미엄 보라색 그라데이션) -->
+                            <Button x:Name="BtnEmptyStateScan" 
+                                    Style="{StaticResource PremiumButtonStyle}" 
+                                    Click="BtnEmptyStateScan_Click"
+                                    Width="220" Height="40" Padding="0"
+                                    HorizontalAlignment="Center"
+                                    Cursor="Hand"
+                                    WindowChrome.IsHitTestVisibleInChrome="True">
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- 번개 Path 아이콘 -->
+                                    <Path Data="M9 21l-9-9 9-9 2 2-7 7 7 7-2 2zm6-18l9 9-9 9-2-2 7-7-7-7 2-2z" 
+                                          Fill="White" Stroke="White" StrokeThickness="0.5" Width="12" Height="12" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="⚡ 3D 객체 파라미터 스캔 실행" VerticalAlignment="Center" FontSize="12.5" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                    <!-- Bottom Button Bar Row (Margin="0,16,0,0" 및 Height="Auto"를 적용하여 실행 버튼의 우하단 여백을 컨테이너 Border 패딩인 14px로 대칭화) -->
+                    <Grid Grid.Row="2" Margin="0,16,0,0" Height="Auto" VerticalAlignment="Bottom">
+                        <!-- Left Aligned Area: Count Indicator -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock x:Name="LblCount" Text="📦 0" Foreground="#334155" FontWeight="Bold" FontSize="12.5" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <!-- Right Aligned Buttons (Excel Export & Main Scan) -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <!-- Excel Export Button (Sage Green Theme) -->
+                            <Button x:Name="BtnExport" Margin="0,0,10,0" VerticalAlignment="Center"
+                                    ToolTip="추출된 표 데이터를 엑셀 호환 CSV 파일로 정밀 내보내기 합니다." 
+                                    WindowChrome.IsHitTestVisibleInChrome="True"
+                                    Style="{DynamicResource PremiumExcelButtonStyle}" 
+                                    Click="BtnExport_Click"
+                                    Padding="20,10"
+                                    IsEnabled="False">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="M3 1h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H3zm1.5 2.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1zm0 3h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1zm0 3h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1z" 
+                                          Stroke="White" StrokeThickness="0.8" Fill="Transparent" Width="13" Height="13" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="엑셀 내보내기" VerticalAlignment="Center" FontSize="12.5" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Main Scan Button -->
+                            <Button x:Name="BtnExtract" VerticalAlignment="Center"
+                                    ToolTip="도면의 파라미터 값을 실시간으로 분석하고 추출합니다." 
+                                    WindowChrome.IsHitTestVisibleInChrome="True"
+                                    Style="{DynamicResource PremiumButtonStyle}" 
+                                    Click="BtnExtract_Click"
+                                    Padding="28,10">
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- 실행 아이콘 -->
+                                    <Path Data="M2,5 L7,1 L12,5 L7,9 Z M2,5 L2,11 L7,15 L7,9 Z M7,9 L7,15 L12,11 L12,5 Z M0,8 L14,8" Stroke="White" StrokeThickness="1.2" Fill="Transparent" Width="14" Height="14" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="실행" VerticalAlignment="Center" FontSize="12.5" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+                <!-- [Star] [전면 차단 로딩 오버레이] 창 구동 및 데이터 분석 중에 전체(사이드바+그리드)를 완전히 가려 텅 빈 화면 노출 차단 (불투명 화이트 스킨) -->
+                <Grid x:Name="LoadingOverlay" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Background="#FCFDFE" Visibility="Visible" Panel.ZIndex="99">
+                    <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="12"
+                            Width="320" Height="240" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#0F172A" BlurRadius="25" ShadowDepth="4" Opacity="0.12"/>
+                        </Border.Effect>
+                        <!-- [Star] [완벽한 수직 중앙 대칭 StackPanel] 요소 숨김 시 가변 수축하여 카드의 정중앙 1:1 대칭 정렬 실현 -->
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="16">
+                            
+                            <!-- 0) 질문 아이콘 (스캔 확인 전 상태) -->
+                            <Grid x:Name="AskScanGrid" Width="40" Height="40" HorizontalAlignment="Center" Margin="0,0,0,12" Visibility="Collapsed">
+                                <Path Data="M12,2 A10,10 0 1,0 22,12 A10,10 0 0,0 12,2 Z M13,17 L11,17 L11,15 L13,15 Z M13,13 L11,13 L11,7 L13,7 Z" 
+                                      Fill="#F59E0B" Stretch="Uniform" Width="36" Height="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- 1) Premium 360도 회전 스피너 (스캔 중 상태에서만 표시) -->
+                            <Grid x:Name="SpinnerGrid" Width="40" Height="40" HorizontalAlignment="Center" Margin="0,0,0,12" Visibility="Visible">
+                                <Ellipse Stroke="#E2E8F0" StrokeThickness="3.5" Width="36" Height="36"/>
+                                <Path Stroke="#6366F1" StrokeThickness="3.5" Width="36" Height="36" 
+                                      Data="M 3,18 A 15,15 0 0 1 18,3" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      RenderTransformOrigin="0.5,0.5">
+                                    <Path.RenderTransform>
+                                        <RotateTransform x:Name="SpinnerTransform" Angle="0"/>
+                                    </Path.RenderTransform>
+                                    <Path.Triggers>
+                                        <EventTrigger RoutedEvent="Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever">
+                                                    <DoubleAnimation Storyboard.TargetName="SpinnerTransform" 
+                                                                     Storyboard.TargetProperty="Angle" 
+                                                                     From="0" To="360" Duration="0:0:1.0"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Path.Triggers>
+                                </Path>
+                            </Grid>
+
+                            <!-- 2) Premium 인디고 체크마크 아이콘 (원 내의 완벽한 1:1 정중앙 안착 보정) -->
+                            <Grid x:Name="CompleteIcon" Width="40" Height="40" HorizontalAlignment="Center" Margin="0,0,0,12" Visibility="Collapsed">
+                                <Ellipse Fill="#086366F1" Stroke="#6366F1" StrokeThickness="2" Width="36" Height="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Path Data="M1,5 L4,8 L10,2" Stroke="#6366F1" StrokeThickness="3.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      Stretch="Uniform" Width="16" Height="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0"/>
+                            </Grid>
+
+                            <TextBlock x:Name="TxtLoadingTitle" Text="Parameter 스캔 중..." FontWeight="Bold" FontSize="14.5" Foreground="#1E293B" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                            <TextBlock x:Name="TxtLoadingSubTitle" Text="3D 뷰의 물리 요소와 가용 매개변수를 수집하고 있습니다." FontSize="11.2" Foreground="#64748B" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                            
+                            <!-- [Star] [확인 버튼 잘림 전면 해결] Height를 36으로 여유 있게 설정하고 패딩 리셋으로 텍스트 수직 마진 무결성 확보 -->
+                            <Button x:Name="BtnConfirmLoading"
+                                    Content="확인"
+                                    Style="{DynamicResource PremiumButtonStyle}"
+                                    Width="96" Height="36"
+                                    Padding="0"
+                                    Visibility="Collapsed"
+                                    HorizontalAlignment="Center"
+                                    Click="BtnConfirmLoading_Click"/>
+
+                            <!-- [Star] 스캔 확인용 다중 버튼 패널 -->
+                            <StackPanel x:Name="AskButtonPanel" Orientation="Horizontal" HorizontalAlignment="Center" Visibility="Collapsed" Margin="0,4,0,0">
+                                <Button x:Name="BtnStartScan" Content="스캔 실행" Style="{DynamicResource PremiumButtonStyle}" Width="96" Height="36" Padding="0" Margin="0,0,8,0" Click="BtnStartScan_Click"/>
+                                <Button x:Name="BtnCancelScan" Content="취소" Background="#E2E8F0" Foreground="#475569" FontWeight="SemiBold" FontSize="13" Width="96" Height="36" BorderThickness="0" Cursor="Hand" Click="BtnCancelScan_Click">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#CBD5E1"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- Single Shared Filter Popup for Excel-Style Filtering -->
+            <Popup x:Name="HeaderFilterPopup" StaysOpen="False" Placement="Bottom" PopupAnimation="Fade" AllowsTransparency="True">
+                <Grid Margin="12">
+                    <Border Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="8" Width="220" MaxHeight="320" Padding="10">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#0F172A" BlurRadius="12" ShadowDepth="3" Opacity="0.1"/>
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/> <!-- Search TextBox inside popup -->
+                                <RowDefinition Height="Auto"/> <!-- Select All CheckBox -->
+                                <RowDefinition Height="*"/>    <!-- Items ListBox -->
+                                <RowDefinition Height="Auto"/> <!-- Action Buttons -->
+                            </Grid.RowDefinitions>
+
+                            <!-- Search Input -->
+                            <TextBox x:Name="TxtFilterSearch" Grid.Row="0" Margin="0,0,0,8" Height="26" Padding="6,2" VerticalContentAlignment="Center" BorderBrush="#CBD5E1" TextChanged="TxtFilterSearch_TextChanged"/>
+                            
+                            <!-- Select All -->
+                            <CheckBox x:Name="ChkFilterSelectAll" Grid.Row="1" Content="(모두 선택)" FontWeight="SemiBold" Margin="2,0,0,6" Click="ChkFilterSelectAll_Click"/>
+
+                            <!-- Items ListBox -->
+                            <ListBox x:Name="LstFilterItems" Grid.Row="2" Background="Transparent" BorderThickness="0" Margin="0,0,0,8" MaxHeight="180" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" Click="FilterItemCheckBox_Click" Content="{Binding Value}" VerticalContentAlignment="Center" Margin="0,1"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <!-- Action Buttons -->
+                            <Grid Grid.Row="3" Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Content="적용" Grid.Column="0" Margin="0,0,4,0" Height="26" Style="{DynamicResource PremiumButtonStyle}" Padding="0" FontSize="11" Click="BtnApplyFilter_Click"/>
+                                <Button Content="취소" Grid.Column="1" Margin="4,0,0,0" Height="26" Style="{DynamicResource PremiumButtonStyle}" Padding="0" FontSize="11" Background="#E2E8F0" Foreground="#475569" Click="BtnCancelFilter_Click"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Popup>
+        </Grid>
+    </Border>
+</Window>

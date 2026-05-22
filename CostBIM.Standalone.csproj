@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <UseWPF>true</UseWPF>
+    <!-- Target WPF Standalone exclusively on .NET 8.0-windows -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CostBIM</RootNamespace>
+    <AssemblyName>CostBIM.Standalone</AssemblyName>
+    <!-- Output as Window Executable (EXE) -->
+    <OutputType>WinExe</OutputType>
+    <Platform>x64</Platform>
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationIcon>costbim.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- 🌟 Revit API 및 관련 애드인 연동 소스 코드를 컴파일에서 안전하게 격리 제외 -->
+  <ItemGroup>
+    <Compile Remove="App.cs" />
+    <Compile Remove="CmdExtract.cs" />
+    <Compile Remove="Services\ExtractEvent.cs" />
+    <Compile Remove="Services\SelectEvent.cs" />
+    <Compile Remove="Services\RevitElementExtractor.cs" />
+    <Compile Remove="CostBIM.Loader\**" />
+    
+    <None Remove="App.cs" />
+    <None Remove="CmdExtract.cs" />
+    <None Remove="Services\ExtractEvent.cs" />
+    <None Remove="Services\SelectEvent.cs" />
+    <None Remove="Services\RevitElementExtractor.cs" />
+    <None Remove="CostBIM.Loader\**" />
+  </ItemGroup>
+</Project>

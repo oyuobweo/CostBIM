@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>CostBIM</Name>
+    <Assembly>CostBIM.Loader.dll</Assembly>
+    <FullClassName>CostBIM.Loader.App</FullClassName>
+    <ClientId>f0d36cd4-74ea-4a6c-9410-d372e9e6231c</ClientId>
+    <VendorId>Antigravity</VendorId>
+    <VendorDescription>Lead Engineer CostBIM System</VendorDescription>
+  </AddIn>
+</RevitAddIns>

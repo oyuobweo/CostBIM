@@ -1,0 +1,106 @@
+<Window x:Class="CostBIM.Views.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CostBIM Welcome" 
+        Height="280" Width="440"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="True">
+    
+    <Window.Resources>
+        <!-- Premium Brand Indigo Gradient -->
+        <LinearGradientBrush x:Key="BrandGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#6366F1" Offset="0"/>
+            <GradientStop Color="#4F46E5" Offset="1"/>
+        </LinearGradientBrush>
+        
+        <LinearGradientBrush x:Key="ProgressGradient" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#818CF8" Offset="0"/>
+            <GradientStop Color="#6366F1" Offset="0.5"/>
+            <GradientStop Color="#4F46E5" Offset="1"/>
+        </LinearGradientBrush>
+    </Window.Resources>
+
+    <Border x:Name="MainBorder" CornerRadius="16" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1.5" Margin="10">
+        <Border.Effect>
+            <DropShadowEffect Color="#0F172A" BlurRadius="20" ShadowDepth="3" Opacity="0.15"/>
+        </Border.Effect>
+        
+        <Grid>
+            <!-- 은은한 백그라운드 기하학적 데코레이션 원 -->
+            <Canvas ClipToBounds="True" IsHitTestVisible="False">
+                <Ellipse Width="150" Height="150" Canvas.Right="-40" Canvas.Top="-40" Fill="#056366F1" Opacity="0.6"/>
+                <Ellipse Width="100" Height="100" Canvas.Left="-30" Canvas.Bottom="-30" Fill="#054F46E5" Opacity="0.6"/>
+            </Canvas>
+            
+            <Grid Margin="24">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- 0) 상단 브랜드 로고 및 텍스트 영역 -->
+                <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <!-- 3D 스택 로고 (부드러운 펄스 애니메이션 탑재) -->
+                    <Grid Width="56" Height="56" HorizontalAlignment="Center" Margin="0,0,0,12" RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <ScaleTransform x:Name="LogoScale" ScaleX="1.0" ScaleY="1.0"/>
+                        </Grid.RenderTransform>
+                        <Grid.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                        <DoubleAnimation Storyboard.TargetName="LogoScale" 
+                                                         Storyboard.TargetProperty="ScaleX" 
+                                                         From="0.96" To="1.04" Duration="0:0:1.2" DecelerationRatio="0.6"/>
+                                        <DoubleAnimation Storyboard.TargetName="LogoScale" 
+                                                         Storyboard.TargetProperty="ScaleY" 
+                                                         From="0.96" To="1.04" Duration="0:0:1.2" DecelerationRatio="0.6"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Grid.Triggers>
+                        <!-- 은은한 네온 발광용 백그라운드 블러 블러쉬 -->
+                        <Ellipse Fill="#156366F1" Width="52" Height="52" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Ellipse.Effect>
+                                <BlurEffect Radius="10"/>
+                            </Ellipse.Effect>
+                        </Ellipse>
+                        <!-- 로고 형상 라인 아트 -->
+                        <Path Data="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
+                              Stroke="{StaticResource BrandGradient}" StrokeThickness="3.2" 
+                              StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" 
+                              Fill="Transparent" Width="44" Height="44" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    
+                    <!-- 브랜드 대제목 -->
+                    <TextBlock Text="CostBIM" Foreground="#1E293B" FontSize="30" FontWeight="Black" FontFamily="Segoe UI, Malgun Gothic" HorizontalAlignment="Center"/>
+                    <!-- 서브타이틀 -->
+                    <TextBlock Text="3D VIEW PARAMETER EXTRACTION ENGINE" Foreground="#64748B" FontSize="9.2" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                </StackPanel>
+                
+                <!-- 1) 하단 로딩 진행 상황 표시 영역 -->
+                <StackPanel Grid.Row="1" VerticalAlignment="Bottom" Margin="0,8,0,0">
+                    <Grid Margin="0,0,0,6">
+                        <!-- 진행 단계 안내 텍스트 -->
+                        <TextBlock x:Name="TxtStatus" Text="CostBIM 엔진 초기화 중..." Foreground="#475569" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Left"/>
+                        <!-- 퍼센테이지 수치 -->
+                        <TextBlock x:Name="TxtPercent" Text="0%" Foreground="#6366F1" FontSize="11" FontWeight="Bold" HorizontalAlignment="Right"/>
+                    </Grid>
+                    
+                    <!-- 프로그레스 트랙 및 인디케이터 (Indicator) -->
+                    <Border Height="6" CornerRadius="3" Background="#F1F5F9" ClipToBounds="True">
+                        <!-- 애니메이션 적용을 위해 Canvas와 Rectangle 조합으로 부드러운 너비 충전을 제어합니다. -->
+                        <Canvas HorizontalAlignment="Left" Width="370" Height="6">
+                            <Rectangle x:Name="ProgressBarIndicator" Height="6" RadiusX="3" RadiusY="3" Width="0" Fill="{StaticResource ProgressGradient}"/>
+                        </Canvas>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

@@ -1,0 +1,23 @@
+# [Environment]
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# [Build Outputs]
+bin/
+obj/
+publish/
+x64/
+x86/
+
+# [OS & Temporary Files]
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.tmp
+*.bak
+*.log
