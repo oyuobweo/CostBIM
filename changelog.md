@@ -1,3 +1,46 @@
+## [1.7.2] - 2026-05-26
+
+### Fixed
+- **Views/MainWindow.xaml**:
+  - 메인 윈도우 867-869 라인에서 사용되는 `PremiumBorderButtonStyle` 스타일 리소스가 메인 뷰의 리소스 사전에 정의되어 있지 않던 유실 경로를 파악하여, 이전 `FamilyMappingWindow.xaml` L73에서 검증된 명품 스타일 소스를 완벽하게 이식/이식함으로써 `System.Windows.StaticResourceExtension` 런타임 크래시 예외를 해결하고 배포를 성공시켰습니다.
+- **Project Deploy**:
+  - `dotnet build` 전체 컴파일(오류 0개) 무결성을 완수하고 `install_addin.ps1`을 통한 Revit 2026 디렉토리 핫로드 배포를 최종 완료하였습니다.
+
+## [1.7.1] - 2026-05-26
+
+### Fixed
+- **Views/MainWindow.xaml**:
+  - 사용자 피드백에 부합하도록 3단 플랫 레이아웃의 배치를 재구조화하였습니다.
+  - 대제목 **"객체 정보 데이터"** 아래에 좌측에는 **"리스트"** 소제목 및 데이터그리드/EmptyState 스캔 버튼을 배치하고, 우측에는 **"추출 매개변수 설정"** 소제목 및 체크박스 리스트 패널이 위치하도록 좌우 배치를 수정하였습니다.
+  - 리스트 영역과 매개변수 설정 영역 사이에 1px 세로 회색 구분선(`BorderThickness="1,0,0,0"`)을 안착시켜 영역을 칼같이 시각화 구획하였습니다.
+
+## [1.7.0] - 2026-05-26
+
+### Added
+- **Views/MainWindow.xaml**:
+  - 데이터 탭(`TabItem 1`)을 **고정형 3단 세로 레이아웃(사이드바 / 매개변수 설정 패널 / 데이터 분석 영역)**으로 전면 재구조화하였습니다.
+  - 기존에 팝업 형태로 작동하던 매개변수 설정 패널(`ParameterConfigPanel`)의 플로팅 속성, 닫기 버튼 및 그림자 효과를 모두 소거하고 260px 너비의 세로형 고정 패널로 좌측 영역에 상시 렌더링되도록 변경하였습니다.
+  - 패널 영역과 데이터그리드 영역 사이에 깔끔한 1px 세로 회색선(`BorderBrush="#E2E8F0"`)을 배치하여 SaaS형 3단 대시보드 비주얼을 구축하였습니다.
+  - 데이터가 수집되기 전 빈 대시보드 상태인 `EmptyStatePanel`에서 불필요한 가이드 텍스트 및 지시 아이콘을 모두 걷어내고, 화면 정중앙에 **미니멀한 "스캔 버튼" 딱 하나만** 깔끔하게 단독 노출되도록 디자인을 압축 개편하였습니다.
+
+### Fixed
+- **Views/MainWindow.xaml & MainWindow.xaml.cs**:
+  - 레이아웃이 고정 3단 레이아웃으로 변경됨에 따라 불필요해진 ⚙️ 매개변수 설정 토글 버튼 및 ✕ 닫기 버튼을 마크업에서 안전하게 제거하고, 빌드 및 핫로드 배포를 오류 0개로 무결하게 완수하였습니다.
+
+## [1.6.0] - 2026-05-26
+
+### Added
+- **Views/MainWindow.xaml.cs**:
+  - `Views/FamilyMappingWindow.xaml.cs`에 흩어져 있던 패밀리 명칭 치환(Family Mapping)의 모든 비즈니스 로직(MappingItems 컬렉션, LoadInitialMappings, 프리셋 JSON 가져오기/내보내기/초기화 및 `%APPDATA%` 로컬 캐시 연동)을 `MainWindow` 내부로 완벽히 흡수 및 통합하였습니다.
+  - 엑셀 내보내기 버튼의 ContextMenu 분기를 위해 "일반 엑셀 내보내기"(`MenuItemExportGeneral_Click`) 및 "기초 수량 내보내기"(`MenuItemExportFoundation_Click`) 이벤트 핸들러를 정밀 구착하였습니다.
+  - "기초 수량 내보내기" 시 사용자가 정의한 패밀리 치환 명칭 및 길이/면적/개수 합산 체크 필드에 따라 O(N) 고속 집계(Group By 및 Sum)를 수행하여 인라인 CSS 테마가 입혀진 고품질 Excel 보고서(*.xls)를 생성하는 집계 연산 엔진을 탑재하였습니다.
+  - ⚙️ 매개변수 설정 플로팅 카드(`ParameterConfigPanel`) 제어를 위한 토글 메서드(`BtnToggleParamPanel_Click`) 및 전체 선택/해제 로직을 추가하여 XAML 바인딩 문제를 완벽히 소거하였습니다.
+
+### Fixed
+- **Views/MainWindow.xaml & MainWindow.xaml.cs**:
+  - 2단 탭 뷰 개편 과정에서 C# 비하인드 코드와의 격차로 발생하던 21개의 컴파일 에러(`BtnExtract` 이름 누락, 프리셋 및 토글 이벤트 핸들러 부재 등)를 완벽히 정밀 치유하여 **빌드 오류 0개**로 청정 컴파일을 성취하였습니다.
+  - 빌드 성공에 발맞추어 Revit 2026 경로로의 최신 애드인 DLL 핫로드 배포(`install_addin.ps1`)를 완벽히 수행하여, 사용자가 Revit 런타임에서 최신 플랫 레이아웃(사이드바 플랫화, 2단 탭 뷰, 플로팅 파라미터 카드, 분기형 엑셀 내보내기 등)을 오차 없이 100% 미려하게 즉시 사용할 수 있도록 완결하였습니다.
+
 ## [1.5.0] - 2026-05-22
 
 ### Added

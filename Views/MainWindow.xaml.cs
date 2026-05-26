@@ -97,6 +97,10 @@ namespace CostBIM.Views
         public ObservableCollection<ParameterItem> ProjectParams { get; } = new ObservableCollection<ParameterItem>();
         public ObservableCollection<ParameterItem> SharedParams { get; } = new ObservableCollection<ParameterItem>();
 
+        // 🌟 패밀리 치환 설정을 위한 데이터 수량 집계 모델 바인딩 컬렉션
+        public ObservableCollection<FamilyMappingItem> MappingItems { get; } = new ObservableCollection<FamilyMappingItem>();
+        private string _defaultPresetPath = "";
+
         // Return currently checked custom parameter names dynamically
         public List<string> CustomParameterNames => GetActiveCustomParameters();
 
@@ -110,6 +114,22 @@ namespace CostBIM.Views
             LstBuiltInParams.ItemsSource = BuiltInParams;
             LstProjectParams.ItemsSource = ProjectParams;
             LstSharedParams.ItemsSource = SharedParams;
+
+            // 기본 로컬 세이브 경로 설정 및 패밀리 치환 컬렉션 바인딩
+            string dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CostBIM");
+            if (!System.IO.Directory.Exists(dir))
+            {
+                System.IO.Directory.CreateDirectory(dir);
+            }
+            _defaultPresetPath = System.IO.Path.Combine(dir, "family_mappings.json");
+
+            if (GridMapping != null)
+            {
+                GridMapping.ItemsSource = MappingItems;
+            }
+
+            // 창이 닫힐 때 패밀리 명칭 치환 자동 세이브 연동
+            this.Closed += (s, ev) => SaveCurrentMappings();
 
             // Build dynamic columns
             RebuildDynamicColumns();
@@ -134,6 +154,9 @@ namespace CostBIM.Views
 
             // 🌟 [동반 팝업 폐쇄 안전장치] 메인 창이 종료될 때 필터 팝업도 즉각 닫아 팝업이 화면에 떠도는 Win32 버그 원천 해결
             this.Closed += (s, ev) => { if (HeaderFilterPopup != null) HeaderFilterPopup.IsOpen = false; };
+
+            // 🌟 [최대화 작업표시줄 덮음 방지 안전장치] 창 메시지 루프 가로채기를 통해 최대화 시 작업 표시줄 보호
+            this.SourceInitialized += MainWindow_SourceInitialized;
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -149,6 +172,91 @@ namespace CostBIM.Views
 
             // 초기 Empty State 동기화 (수집 전이므로 데이터그리드가 비어 있어 빈 화면 가이드 노출)
             ApplyFilter();
+        }
+
+        private void MainWindow_SourceInitialized(object? sender, EventArgs e)
+        {
+            var handle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            System.Windows.Interop.HwndSource.FromHwnd(handle).AddHook(WindowProc);
+        }
+
+        private IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == 0x0024) // WM_GETMINMAXINFO
+            {
+                WmGetMinMaxInfo(hwnd, lParam);
+                handled = true;
+            }
+            return IntPtr.Zero;
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct MINMAXINFO
+        {
+            public POINT ptReserved;
+            public POINT ptMaxSize;
+            public POINT ptMaxPosition;
+            public POINT ptMinTrackSize;
+            public POINT ptMaxTrackSize;
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct MONITORINFO
+        {
+            public int cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public int dwFlags;
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr handle, int flags);
+
+        private void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+        {
+            MINMAXINFO mmi = (MINMAXINFO)System.Runtime.InteropServices.Marshal.PtrToStructure(lParam, typeof(MINMAXINFO))!;
+
+            int MONITOR_DEFAULTTONEAREST = 0x00000002;
+            IntPtr monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+
+            if (monitor != IntPtr.Zero)
+            {
+                MONITORINFO monitorInfo = new MONITORINFO();
+                monitorInfo.cbSize = System.Runtime.InteropServices.Marshal.SizeOf(typeof(MONITORINFO));
+                GetMonitorInfo(monitor, ref monitorInfo);
+
+                RECT rcWorkArea = monitorInfo.rcWork;
+                RECT rcMonitorArea = monitorInfo.rcMonitor;
+
+                mmi.ptMaxPosition.X = Math.Abs(rcWorkArea.Left - rcMonitorArea.Left);
+                mmi.ptMaxPosition.Y = Math.Abs(rcWorkArea.Top - rcMonitorArea.Top);
+                mmi.ptMaxSize.X = Math.Abs(rcWorkArea.Right - rcWorkArea.Left);
+                mmi.ptMaxSize.Y = Math.Abs(rcWorkArea.Bottom - rcWorkArea.Top);
+                
+                mmi.ptMinTrackSize.X = 800;
+                mmi.ptMinTrackSize.Y = 600;
+            }
+
+            System.Runtime.InteropServices.Marshal.StructureToPtr(mmi, lParam, true);
         }
 
         // 2) Load Parameters scanned from Active View (Starts completely unchecked / blank slate)
@@ -618,6 +726,9 @@ namespace CostBIM.Views
             {
                 _allElements = elements;
                 
+                // 🌟 스캔된 실물 물리 객체 데이터 기반 패밀리 치환 매핑 리스트 구성
+                LoadInitialMappings(elements);
+
                 // [지연 바인딩] 이전처럼 즉시 필터링(ApplyFilter)하지 않고 스캔 완료 알림창만 먼저 표출
                 ShowComplete();
                 SetStatus("");
@@ -1724,6 +1835,435 @@ namespace CostBIM.Views
             if (e.Key == Key.Escape)
             {
                 e.Handled = true;
+            }
+        }
+
+        // 🌟 [패밀리 명칭 치환 비즈니스 로직 및 프리셋 핸들러]
+        private void LoadInitialMappings(List<ExtractedElement> elements)
+        {
+            if (elements == null) return;
+
+            MappingItems.Clear();
+
+            // 1) 기본 로컬 캐시 로드 (%APPDATA%/CostBIM/family_mappings.json)
+            var savedDict = LoadSavedMappingsFromFile(_defaultPresetPath);
+
+            // 2) 고유 패밀리 리스트 추출 (정렬 적용)
+            var uniqueFamilies = elements
+                .Where(x => !string.IsNullOrEmpty(x.Family))
+                .Select(x => Tuple.Create(x.Category, x.Family))
+                .Distinct()
+                .OrderBy(x => x.Item1)
+                .ThenBy(x => x.Item2)
+                .ToList();
+
+            foreach (var item in uniqueFamilies)
+            {
+                string category = item.Item1;
+                string family = item.Item2;
+
+                string remapped = "";
+                bool isLengthSum = false;
+                bool isAreaSum = false;
+                bool isCountSum = true;
+
+                if (savedDict != null && savedDict.ContainsKey(family))
+                {
+                    var config = savedDict[family];
+                    remapped = config.RemappedFamily ?? "";
+                    isLengthSum = config.IsLengthSumChecked;
+                    isAreaSum = config.IsAreaSumChecked;
+                    isCountSum = config.IsCountSumChecked;
+                }
+                else
+                {
+                    // CFT코드 지능형 자동 맵핑 추천
+                    string upperFam = family.ToUpper();
+                    if (upperFam.Contains("CFT"))
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(family, @"\d+.*");
+                        if (match.Success)
+                        {
+                            remapped = $"CFT기둥 ({match.Value.Trim()})";
+                        }
+                        else
+                        {
+                            remapped = "CFT기둥";
+                        }
+                    }
+                }
+
+                MappingItems.Add(new FamilyMappingItem
+                {
+                    Category = category,
+                    OriginalFamily = family,
+                    RemappedFamily = remapped,
+                    IsLengthSumChecked = isLengthSum,
+                    IsAreaSumChecked = isAreaSum,
+                    IsCountSumChecked = isCountSum
+                });
+            }
+        }
+
+        private Dictionary<string, FamilyConfig> LoadSavedMappingsFromFile(string path)
+        {
+            var result = new Dictionary<string, FamilyConfig>();
+            try
+            {
+                if (System.IO.File.Exists(path))
+                {
+                    string json = System.IO.File.ReadAllText(path);
+                    using (System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(json))
+                    {
+                        foreach (var prop in doc.RootElement.EnumerateObject())
+                        {
+                            string key = prop.Name;
+                            var valElement = prop.Value;
+                            var config = new FamilyConfig();
+
+                            if (valElement.ValueKind == System.Text.Json.JsonValueKind.String)
+                            {
+                                config.RemappedFamily = valElement.GetString() ?? "";
+                            }
+                            else if (valElement.ValueKind == System.Text.Json.JsonValueKind.Object)
+                            {
+                                if (valElement.TryGetProperty("RemappedFamily", out var rf))
+                                    config.RemappedFamily = rf.GetString() ?? "";
+                                if (valElement.TryGetProperty("IsLengthSumChecked", out var len))
+                                    config.IsLengthSumChecked = len.GetBoolean();
+                                if (valElement.TryGetProperty("IsAreaSumChecked", out var area))
+                                    config.IsAreaSumChecked = area.GetBoolean();
+                                if (valElement.TryGetProperty("IsCountSumChecked", out var cnt))
+                                    config.IsCountSumChecked = cnt.GetBoolean();
+                            }
+                            result[key] = config;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 무시
+            }
+            return result;
+        }
+
+        private void SaveCurrentMappings()
+        {
+            try
+            {
+                if (MappingItems == null || MappingItems.Count == 0) return;
+                var dict = MappingItems.ToDictionary(
+                    x => x.OriginalFamily, 
+                    x => new FamilyConfig 
+                    { 
+                        RemappedFamily = x.RemappedFamily,
+                        IsLengthSumChecked = x.IsLengthSumChecked,
+                        IsAreaSumChecked = x.IsAreaSumChecked,
+                        IsCountSumChecked = x.IsCountSumChecked
+                    }
+                );
+                string json = System.Text.Json.JsonSerializer.Serialize(dict, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                System.IO.File.WriteAllText(_defaultPresetPath, json);
+            }
+            catch
+            {
+                // 무시
+            }
+        }
+
+        // 📥 [프리셋 가져오기] 사용자 프리셋 파일 로드 및 결합
+        private void BtnImportPreset_Click(object sender, RoutedEventArgs e)
+        {
+            var openDialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "CostBIM 맵핑 프리셋 (*.json;*.cbmpreset)|*.json;*.cbmpreset|모든 파일 (*.*)|*.*",
+                Title = "패밀리 맵핑 프리셋 가져오기"
+            };
+
+            if (openDialog.ShowDialog() == true)
+            {
+                var imported = LoadSavedMappingsFromFile(openDialog.FileName);
+                if (imported == null || imported.Count == 0)
+                {
+                    MessageBox.Show("프리셋 파일에 유효한 매핑 데이터가 없거나 훼손되었습니다.", "가져오기 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                int updateCount = 0;
+                foreach (var item in MappingItems)
+                {
+                    if (imported.ContainsKey(item.OriginalFamily))
+                    {
+                        var config = imported[item.OriginalFamily];
+                        item.RemappedFamily = config.RemappedFamily ?? "";
+                        item.IsLengthSumChecked = config.IsLengthSumChecked;
+                        item.IsAreaSumChecked = config.IsAreaSumChecked;
+                        item.IsCountSumChecked = config.IsCountSumChecked;
+                        updateCount++;
+                    }
+                }
+
+                MessageBox.Show($"총 {updateCount}개의 패밀리 맵핑을 프리셋에서 성공적으로 연동해 가져왔습니다!", "가져오기 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        // 📤 [프리셋 저장] 현재 설정된 전체 맵핑 사전을 외부 공유 가능한 프리셋 파일로 보존
+        private void BtnExportPreset_Click(object sender, RoutedEventArgs e)
+        {
+            var saveDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "CostBIM 맵핑 프리셋 (*.json)|*.json|CostBIM 프리셋 (*.cbmpreset)|*.cbmpreset",
+                Title = "패밀리 맵핑 프리셋 외부로 저장",
+                FileName = $"CostBIM_Preset_{DateTime.Now:yyyyMMdd}.json"
+            };
+
+            if (saveDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var dict = MappingItems.ToDictionary(
+                        x => x.OriginalFamily, 
+                        x => new FamilyConfig 
+                        { 
+                            RemappedFamily = x.RemappedFamily,
+                            IsLengthSumChecked = x.IsLengthSumChecked,
+                            IsAreaSumChecked = x.IsAreaSumChecked,
+                            IsCountSumChecked = x.IsCountSumChecked
+                        }
+                    );
+                    string json = System.Text.Json.JsonSerializer.Serialize(dict, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                    System.IO.File.WriteAllText(saveDialog.FileName, json);
+                    
+                    MessageBox.Show("맵핑 프리셋 파일이 성공적으로 저장되었습니다!\n다른 작업자에게 전달하여 맵핑 명칭을 통일해서 작업할 수 있습니다.", "프리셋 저장 완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"프리셋 저장 중 오류가 발생했습니다:\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        // 초기화
+        private void BtnReset_Click(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show("입력된 모든 치환 명칭 및 합산 설정을 초기화하시겠습니까?", "확인", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK)
+            {
+                foreach (var item in MappingItems)
+                {
+                    item.RemappedFamily = "";
+                    item.IsLengthSumChecked = false;
+                    item.IsAreaSumChecked = false;
+                    item.IsCountSumChecked = true;
+                }
+            }
+        }
+
+        // ⚙️ Floating Parameter Configuration Panel 토글 및 선택 메서드들
+        private void BtnToggleParamPanel_Click(object sender, RoutedEventArgs e)
+        {
+            if (ParameterConfigPanel != null)
+            {
+                ParameterConfigPanel.Visibility = ParameterConfigPanel.Visibility == Visibility.Visible 
+                    ? Visibility.Collapsed 
+                    : Visibility.Visible;
+            }
+        }
+
+        private void BtnSelectAllParams_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var param in BuiltInParams) param.IsChecked = true;
+            foreach (var param in ProjectParams) param.IsChecked = true;
+            foreach (var param in SharedParams) param.IsChecked = true;
+            RebuildDynamicColumns();
+        }
+
+        private void BtnDeselectAllParams_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var param in BuiltInParams) param.IsChecked = false;
+            foreach (var param in ProjectParams) param.IsChecked = false;
+            foreach (var param in SharedParams) param.IsChecked = false;
+            RebuildDynamicColumns();
+        }
+
+        // 🧱 [기초 수량 집계 내보내기 핵심 연산 헬퍼]
+        private double GetPropertyValueAsDouble(ExtractedElement elem, string keyPattern)
+        {
+            if (elem == null || elem.CustomParameters == null) return 0;
+            
+            foreach (var pair in elem.CustomParameters)
+            {
+                if (pair.Key.Contains(keyPattern, StringComparison.OrdinalIgnoreCase))
+                {
+                    string val = pair.Value;
+                    if (string.IsNullOrEmpty(val)) continue;
+                    
+                    string clean = val.Replace(",", "")
+                                      .Replace("mm", "")
+                                      .Replace("m³", "")
+                                      .Replace("m2", "")
+                                      .Replace("m3", "")
+                                      .Replace("EA", "")
+                                      .Trim();
+                    if (double.TryParse(clean, out double d))
+                    {
+                        return d;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        // 📊 일반 엑셀 내보내기 위임 핸들러
+        private void MenuItemExportGeneral_Click(object sender, RoutedEventArgs e)
+        {
+            BtnExport_Click(sender, e);
+        }
+
+        // 🧱 기초 수량 내보내기 엔진
+        private void MenuItemExportFoundation_Click(object sender, RoutedEventArgs e)
+        {
+            if (GridElements.ItemsSource == null || _allElements == null || _allElements.Count == 0)
+            {
+                MessageBox.Show("내보낼 데이터가 없습니다. 먼저 실행을 눌러 데이터를 스캔해주세요.", "안내", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var saveDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Excel 통합 문서 (*.xls)|*.xls",
+                Title = "기초 수량 집계 내보내기",
+                FileName = $"CostBIM_Foundation_Export_{DateTime.Now:yyyyMMdd_HHmmss}.xls"
+            };
+
+            if (saveDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var rules = MappingItems.ToDictionary(x => x.OriginalFamily, x => x);
+
+                    var grouped = _allElements
+                        .GroupBy(elem => {
+                            string origFam = elem.Family ?? "";
+                            if (rules.TryGetValue(origFam, out var rule) && !string.IsNullOrEmpty(rule.RemappedFamily))
+                            {
+                                return rule.RemappedFamily;
+                            }
+                            return origFam;
+                        })
+                        .Select(g => {
+                            var firstElem = g.First();
+                            string origFam = firstElem.Family ?? "";
+                            
+                            bool isLengthSum = false;
+                            bool isAreaSum = false;
+                            bool isCountSum = true;
+
+                            if (rules.TryGetValue(origFam, out var rule))
+                            {
+                                isLengthSum = rule.IsLengthSumChecked;
+                                isAreaSum = rule.IsAreaSumChecked;
+                                isCountSum = rule.IsCountSumChecked;
+                            }
+
+                            double totalLength = 0;
+                            double totalArea = 0;
+                            int count = g.Count();
+
+                            if (isLengthSum)
+                            {
+                                foreach (var elem in g)
+                                {
+                                    totalLength += GetPropertyValueAsDouble(elem, "길이") + GetPropertyValueAsDouble(elem, "Length");
+                                }
+                            }
+
+                            if (isAreaSum)
+                            {
+                                foreach (var elem in g)
+                                {
+                                    totalArea += GetPropertyValueAsDouble(elem, "면적") + GetPropertyValueAsDouble(elem, "Area");
+                                }
+                            }
+
+                            return new {
+                                Category = firstElem.Category ?? "",
+                                RemappedFamily = g.Key,
+                                Length = isLengthSum ? $"{totalLength:F2} m" : "-",
+                                Area = isAreaSum ? $"{totalArea:F2} ㎡" : "-",
+                                Count = isCountSum ? $"{count} EA" : "-"
+                            };
+                        })
+                        .OrderBy(x => x.Category)
+                        .ThenBy(x => x.RemappedFamily)
+                        .ToList();
+
+                    using (var writer = new System.IO.StreamWriter(saveDialog.FileName, false, System.Text.Encoding.UTF8))
+                    {
+                        writer.WriteLine("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
+                        writer.WriteLine("<head>");
+                        writer.WriteLine("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">");
+                        writer.WriteLine("<!--[if gte mso 9]>");
+                        writer.WriteLine("<xml>");
+                        writer.WriteLine(" <x:ExcelWorkbook>");
+                        writer.WriteLine("  <x:ExcelWorksheets>");
+                        writer.WriteLine("   <x:ExcelWorksheet>");
+                        writer.WriteLine("    <x:Name>CostBIM_Foundation</x:Name>");
+                        writer.WriteLine("    <x:WorksheetOptions>");
+                        writer.WriteLine("     <x:DisplayGridlines/>");
+                        writer.WriteLine("    </x:WorksheetOptions>");
+                        writer.WriteLine("   </x:ExcelWorksheet>");
+                        writer.WriteLine("  </x:ExcelWorksheets>");
+                        writer.WriteLine(" </x:ExcelWorkbook>");
+                        writer.WriteLine("</xml>");
+                        writer.WriteLine("<![endif]-->");
+                        writer.WriteLine("<style>");
+                        writer.WriteLine("  table { border-collapse: collapse; font-family: 'Malgun Gothic', 'Segoe UI', sans-serif; font-size: 10pt; }");
+                        writer.WriteLine("  th { background-color: #6366F1; color: #FFFFFF; font-weight: bold; border: 1px solid #CBD5E1; padding: 10px 14px; height: 28pt; text-align: center; }");
+                        writer.WriteLine("  td { border: 1px solid #E2E8F0; padding: 8px 12px; height: 22pt; color: #1E293B; vertical-align: middle; }");
+                        writer.WriteLine("  .no-col { background-color: #F1F5F9; color: #64748B; font-weight: bold; text-align: center; border: 1px solid #CBD5E1; }");
+                        writer.WriteLine("  .num-cell { text-align: right; }");
+                        writer.WriteLine("  .text-cell { text-align: left; }");
+                        writer.WriteLine("  .center-cell { text-align: center; }");
+                        writer.WriteLine("</style>");
+                        writer.WriteLine("</head>");
+                        writer.WriteLine("<body>");
+                        writer.WriteLine("<h2>🧱 패밀리 명칭 치환 기준 기초 수량 집계표</h2>");
+                        writer.WriteLine("<table>");
+                        
+                        writer.WriteLine("  <tr>");
+                        writer.WriteLine("    <th class=\"no-col\" style=\"width: 50px;\">NO.</th>");
+                        writer.WriteLine("    <th style=\"width: 150px;\">카테고리</th>");
+                        writer.WriteLine("    <th style=\"width: 300px;\">치환 패밀리 명칭</th>");
+                        writer.WriteLine("    <th style=\"width: 120px;\">길이 합산</th>");
+                        writer.WriteLine("    <th style=\"width: 120px;\">면적 합산</th>");
+                        writer.WriteLine("    <th style=\"width: 100px;\">개수 합산</th>");
+                        writer.WriteLine("  </tr>");
+
+                        int index = 1;
+                        foreach (var row in grouped)
+                        {
+                            writer.WriteLine("  <tr>");
+                            writer.WriteLine($"    <td class=\"no-col\">{index++}</td>");
+                            writer.WriteLine($"    <td class=\"center-cell\">{System.Net.WebUtility.HtmlEncode(row.Category)}</td>");
+                            writer.WriteLine($"    <td class=\"text-cell\" style=\"font-weight: bold;\">{System.Net.WebUtility.HtmlEncode(row.RemappedFamily)}</td>");
+                            writer.WriteLine($"    <td class=\"num-cell\">{row.Length}</td>");
+                            writer.WriteLine($"    <td class=\"num-cell\">{row.Area}</td>");
+                            writer.WriteLine($"    <td class=\"num-cell\">{row.Count}</td>");
+                            writer.WriteLine("  </tr>");
+                        }
+
+                        writer.WriteLine("</table>");
+                        writer.WriteLine("</body>");
+                        writer.WriteLine("</html>");
+                    }
+
+                    MessageBox.Show("치환 명칭 기준으로 집계된 기초 수량 보고서가 Excel 파일로 성공적으로 생성되었습니다!", "성공", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"보고서 생성 중 오류가 발생했습니다:\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
     }
